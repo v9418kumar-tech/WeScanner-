@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WeScanner</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #0f1115;
+      color: white;
+    }
+
+    header {
+      padding: 20px;
+      text-align: center;
+      background: #171a21;
+      border-bottom: 1px solid #30343d;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 32px;
+    }
+
+    .subtitle {
+      margin-top: 8px;
+      color: #aaa;
+      font-size: 15px;
+    }
+
+    .scanner {
+      padding: 20px;
+    }
+
+    .status {
+      background: #171a21;
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+
+    .table-box {
+      overflow-x: auto;
+      background: #171a21;
+      border-radius: 10px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 600px;
+    }
+
+    th, td {
+      padding: 14px;
+      text-align: left;
+      border-bottom: 1px solid #30343d;
+    }
+
+    th {
+      color: #aaa;
+      font-size: 14px;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 30px;
+      color: #888;
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <h1>WeScanner</h1>
+    <div class="subtitle">1-Minute Highest Volume Scanner</div>
+  </header>
+
+  <div class="scanner">
+
+    <div class="status">
+      <strong>NSE Equity</strong><br>
+      Scanner: 1 Minute Highest Volume<br>
+      Status: Waiting for market data
+    </div>
+
+    <div class="table-box">
+      <table>
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>Symbol</th>
+            <th>Price</th>
+            <th>1-Min Volume</th>
+            <th>Volume Spike</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr>
+            <td colspan="5" class="empty">
+              Live market data will appear here
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+</body>
+</html>
