@@ -1,38 +1,33 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hi">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WeScanner - 1 Minute Volume Explosion</title>
+<title>WeScanner</title>
 
 <style>
-*{
-  box-sizing:border-box;
-}
-
 body{
   margin:0;
   font-family:Arial,sans-serif;
-  background:#0f1115;
+  background:#0b0f14;
   color:white;
 }
 
 header{
-  padding:20px 15px;
+  background:#171c24;
+  padding:20px;
   text-align:center;
-  background:#171a21;
-  border-bottom:1px solid #30343d;
+  border-bottom:1px solid #303743;
 }
 
 h1{
   margin:0;
-  font-size:30px;
+  font-size:28px;
 }
 
 .subtitle{
   margin-top:8px;
   color:#aaa;
-  font-size:14px;
 }
 
 .scanner{
@@ -40,46 +35,50 @@ h1{
 }
 
 .status{
-  background:#171a21;
+  background:#171c24;
   padding:15px;
   border-radius:10px;
   margin-bottom:15px;
-  line-height:1.7;
+  border:1px solid #303743;
 }
 
 .controls{
-  background:#171a21;
-  padding:15px;
-  border-radius:10px;
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:10px;
   margin-bottom:15px;
 }
 
-.controls div{
-  margin:7px 0;
-  color:#ccc;
+.box{
+  background:#171c24;
+  padding:14px;
+  border-radius:10px;
+  border:1px solid #303743;
 }
 
 .value{
-  color:#fff;
+  display:block;
+  margin-top:6px;
   font-weight:bold;
 }
 
 .table-box{
   overflow-x:auto;
-  background:#171a21;
+  background:#11161d;
   border-radius:10px;
+  border:1px solid #303743;
 }
 
 table{
   width:100%;
-  min-width:850px;
   border-collapse:collapse;
+  min-width:700px;
 }
 
 th,td{
   padding:13px;
   text-align:left;
-  border-bottom:1px solid #30343d;
+  border-bottom:1px solid #303743;
 }
 
 th{
@@ -91,24 +90,33 @@ td{
   font-size:14px;
 }
 
-.empty{
-  text-align:center;
-  padding:30px;
-  color:#888;
+.spike{
+  font-weight:bold;
 }
 
-.spike{
+.up{
   font-weight:bold;
 }
 
 .note{
   margin-top:15px;
   padding:14px;
-  background:#171a21;
+  background:#171c24;
   border-radius:10px;
-  color:#999;
+  color:#aaa;
   font-size:13px;
   line-height:1.6;
+}
+
+button{
+  width:100%;
+  padding:14px;
+  border:0;
+  border-radius:8px;
+  font-size:16px;
+  font-weight:bold;
+  background:#6c35d9;
+  color:white;
 }
 </style>
 </head>
@@ -117,9 +125,7 @@ td{
 
 <header>
   <h1>WeScanner</h1>
-  <div class="subtitle">
-    1-Minute Volume Explosion Scanner
-  </div>
+  <div class="subtitle">1-Minute Volume Explosion Scanner</div>
 </header>
 
 <div class="scanner">
@@ -127,30 +133,36 @@ td{
   <div class="status">
     <strong>NSE Equity</strong><br>
     Scanner: 1-Minute Highest Volume<br>
-    Status: <span id="status">Waiting for market data</span>
+    Status: <span id="status">Demo mode - live API not connected</span>
   </div>
 
   <div class="controls">
-    <div>Minimum Price:
-      <span class="value">₹100</span>
+
+    <div class="box">
+      Minimum Price
+      <span class="value">₹100+</span>
     </div>
 
-    <div>Timeframe:
+    <div class="box">
+      Timeframe
       <span class="value">1 Minute</span>
     </div>
 
-    <div>Comparison:
-      <span class="value">Current 1-Min vs Previous 5-Min</span>
+    <div class="box">
+      Comparison
+      <span class="value">Current 1-Min vs Previous 5-Min Avg</span>
     </div>
 
-    <div>Sorting:
+    <div class="box">
+      Sorting
       <span class="value">Highest Volume Spike First</span>
     </div>
+
   </div>
 
   <div class="table-box">
-
     <table>
+
       <thead>
         <tr>
           <th>Rank</th>
@@ -166,290 +178,63 @@ td{
       <tbody id="results">
 
         <tr>
-          <td colspan="7" class="empty">
-            Live market data will appear here
-          </td>
+          <td>1</td>
+          <td>RELIANCE</td>
+          <td>₹1,450</td>
+          <td>9,00,000</td>
+          <td>1,05,000</td>
+          <td class="spike">8.57x</td>
+          <td class="up">+1.24%</td>
+        </tr>
+
+        <tr>
+          <td>2</td>
+          <td>TATASTEEL</td>
+          <td>₹175</td>
+          <td>6,50,000</td>
+          <td>1,10,000</td>
+          <td class="spike">5.91x</td>
+          <td class="up">+1.05%</td>
+        </tr>
+
+        <tr>
+          <td>3</td>
+          <td>INFY</td>
+          <td>₹1,620</td>
+          <td>4,80,000</td>
+          <td>1,00,000</td>
+          <td class="spike">4.80x</td>
+          <td class="up">+0.88%</td>
         </tr>
 
       </tbody>
-    </table>
 
+    </table>
   </div>
 
   <div class="note">
-    Scanner logic: केवल ₹100 से ऊपर के NSE equity shares को
-    प्राथमिकता दी जाएगी। वर्तमान 1-minute volume को पिछले
-    5 minutes के average volume से compare किया जाएगा और
-    सबसे बड़ा volume explosion ऊपर दिखाया जाएगा।
+    Scanner Logic:<br>
+    • केवल ₹100 से ऊपर के NSE Equity शेयर<br>
+    • Current 1-minute volume को पिछले 5 मिनट के average volume से compare किया जाएगा<br>
+    • सबसे बड़ा volume explosion ऊपर दिखाया जाएगा<br>
+    • यह अभी Demo data है। वास्तविक NSE live data के लिए सुरक्षित Upstox API/backend connection आवश्यक है।
   </div>
 
 </div>
 
 <script>
 
-/*
-====================================================
-WeScanner
-1-Minute Volume Explosion Logic
-====================================================
-
-IMPORTANT:
-GitHub Pages केवल HTML/JavaScript चलाता है।
-NSE का वास्तविक live 1-minute data सीधे browser
-से reliably प्राप्त करने के लिए API/backend जरूरी है।
-
-नीचे scanner calculation तैयार है।
-जब live API उपलब्ध होगी, data इसी function में
-डाला जा सकता है।
-====================================================
-*/
-
-
-function calculateScanner(data){
-
-    const filtered = data.filter(stock => {
-
-        // केवल ₹100 से ऊपर
-        if(stock.price <= 100) return false;
-
-        // Equity only
-        if(stock.type && stock.type !== "EQUITY") return false;
-
-        return true;
-    });
-
-
-    const calculated = filtered.map(stock => {
-
-        const currentVolume = Number(stock.currentVolume || 0);
-
-        const previousVolumes =
-            stock.previous5Volumes || [];
-
-        let averageVolume = 0;
-
-        if(previousVolumes.length > 0){
-
-            const total =
-                previousVolumes.reduce(
-                    (sum, volume) =>
-                    sum + Number(volume || 0),0
-                );
-
-            averageVolume =
-                total / previousVolumes.length;
-        }
-
-
-        let spike = 0;
-
-        if(averageVolume > 0){
-
-            spike =
-                currentVolume /
-                averageVolume;
-        }
-
-
-        let priceMove = 0;
-
-        if(stock.previousClose > 0){
-
-            priceMove =
-                ((stock.price -
-                  stock.previousClose) /
-                  stock.previousClose) * 100;
-        }
-
-
-        return {
-
-            symbol:stock.symbol,
-
-            price:stock.price,
-
-            currentVolume:currentVolume,
-
-            averageVolume:averageVolume,
-
-            spike:spike,
-
-            priceMove:priceMove
-        };
-
-    });
-
-
-    // Highest volume spike first
-
-    calculated.sort(
-        (a,b) => b.spike - a.spike
-    );
-
-
-    displayResults(calculated);
-}
-
-
-function formatNumber(number){
-
-    if(!number) return "0";
-
-    return Number(number)
-        .toLocaleString("en-IN");
-}
-
-
-function displayResults(stocks){
-
-    const results =
-        document.getElementById("results");
-
-    results.innerHTML = "";
-
-
-    if(stocks.length === 0){
-
-        results.innerHTML = `
-        <tr>
-          <td colspan="7" class="empty">
-            No qualifying stocks found
-          </td>
-        </tr>`;
-
-        return;
-    }
-
-
-    stocks.forEach((stock,index)=>{
-
-        const row =
-        document.createElement("tr");
-
-
-        row.innerHTML = `
-
-          <td>${index + 1}</td>
-
-          <td>
-            <strong>${stock.symbol}</strong>
-          </td>
-
-          <td>
-            ₹${Number(stock.price).toFixed(2)}
-          </td>
-
-          <td>
-            ${formatNumber(stock.currentVolume)}
-          </td>
-
-          <td>
-            ${formatNumber(
-              Math.round(stock.averageVolume)
-            )}
-          </td>
-
-          <td class="spike">
-            ${stock.spike.toFixed(1)}x
-          </td>
-
-          <td>
-            ${stock.priceMove >= 0 ? "+" : ""}
-            ${stock.priceMove.toFixed(2)}%
-          </td>
-
-        `;
-
-        results.appendChild(row);
-
-    });
-}
-
-
-/*
-----------------------------------------------------
-TEST DATA
-----------------------------------------------------
-
-यह केवल scanner calculation check करने के लिए है।
-असली NSE live data आने पर इसे API data से replace
-किया जाएगा।
-----------------------------------------------------
-*/
-
-const testData = [
-
-  {
-    symbol:"RELIANCE",
-    type:"EQUITY",
-    price:1450,
-    previousClose:1438,
-    currentVolume:850000,
-    previous5Volumes:[
-      90000,
-      95000,
-      87000,
-      92000,
-      88000
-    ]
-  },
-
-  {
-    symbol:"TATASTEEL",
-    type:"EQUITY",
-    price:178,
-    previousClose:176,
-    currentVolume:1250000,
-    previous5Volumes:[
-      140000,
-      135000,
-      150000,
-      145000,
-      138000
-    ]
-  },
-
-  {
-    symbol:"INFY",
-    type:"EQUITY",
-    price:1650,
-    previousClose:1645,
-    currentVolume:410000,
-    previous5Volumes:[
-      80000,
-      76000,
-      82000,
-      79000,
-      81000
-    ]
-  },
-
-  {
-    symbol:"ABC",
-    type:"EQUITY",
-    price:85,
-    previousClose:84,
-    currentVolume:900000,
-    previous5Volumes:[
-      100000,
-      95000,
-      110000,
-      98000,
-      105000
-    ]
+function calculateSpike(currentVolume, previousAverage){
+  if(previousAverage <= 0){
+    return 0;
   }
 
-];
+  return currentVolume / previousAverage;
+}
 
-
-// Test calculation
-calculateScanner(testData);
-
-
-// Status
-document.getElementById("status").innerText =
-"Scanner ready - waiting for live market API";
-
+console.log(
+  "WeScanner ready. Live Upstox API connection will be added securely."
+);
 
 </script>
 
