@@ -10,8 +10,8 @@ def load():
  global instruments,loaded
  if instruments and time.time()-loaded<21600:return
  r=s.get(INSTR_URL,timeout=30);r.raise_for_status();d=json.loads(gzip.decompress(r.content))
- instruments=[x for x in d if x.get("segment")=="NSE_EQ" and x.get("instrument_type")=="EQ" and x.get("security_type")=="NORMAL" and x.get("instrument_key")];loaded=time.time();logging.info("Loaded %s NSE EQ instruments",len(instruments))
-def chunks(a,n):
+  trading_symbol") or "")+" "+(x.get("name") or "")).upper()]
+def chunks(a,n): 
  for i in range(0,len(a),n):yield a[i:i+n]
 def quotes():
  out=[]
