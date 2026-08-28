@@ -1,608 +1,305 @@
-import os
-import gzip
-import json
-import time
-import logging
-import threading
-import requests
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ParulScanner</title>
+
+<style>
+*{box-sizing:border-box}
+body{
+margin:0;
+background:#0b0f14;
+color:#fff;
+font-family:Arial,sans-serif
+}
+header{
+background:#171c24;
+padding:20px;
+text-align:center;
+border-bottom:1px solid #303744
+}
+h1{margin:0;font-size:30px}
+.sub{color:#aeb6c3;margin-top:7px}
+.wrap{max-width:1100px;margin:auto;padding:12px}
+.card{
+background:#171c24;
+border:1px solid #303744;
+border-radius:14px;
+padding:15px;
+margin-bottom:12px
+}
+.status{font-weight:bold}
+.live{color:#38d996}
+.warn{color:#ffbd4a}
+.controls{
+display:flex;
+gap:10px;
+flex-wrap:wrap;
+align-items:center
+}
+select,button{
+background:#0e131a;
+color:white;
+border:1px solid #46505f;
+border-radius:9px;
+padding:11px;
+font-size:15px
+}
+button{
+cursor:pointer;
+font-weight:bold
+}
+.info{
+display:grid;
+grid-template-columns:repeat(2,1fr);
+gap:10px;
+margin-bottom:12px
+}
+.box{
+background:#11161d;
+border:1px solid #303744;
+border-radius:12px;
+padding:13px
+}
+.label{color:#9ca6b5;font-size:13px}
+.value{font-size:18px;font-weight:bold;margin-top:5px}
+.tablebox{
+overflow-x:auto;
+background:#11161d;
+border-radius:12px;
+border:1px solid #303744
+}
+table{
+width:100%;
+border-collapse:collapse;
+font-size:13px;
+min-width:750px
+}
+th,td{
+padding:11px 8px;
+border-bottom:1px solid #303744;
+text-align:right;
+white-space:nowrap
+}
+th:first-child,td:first-child,
+th:nth-child(2),td:nth-child(2){
+text-align:left
+}
+th{color:#9ca6b5}
+.spike{
+color:#43e0a0;
+font-weight:bold
+}
+.note{
+color:#9ca6b5;
+font-size:12px;
+line-height:1.5;
+margin-top:12px
+}
+@media(max-width:600px){
+h1{font-size:26px}
+.info{grid-template-columns:1fr 1fr}
+.wrap{padding:8px}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+<h1>ParulScanner</h1>
+<div class="sub">1-Minute Volume Explosion Scanner</div>
+</header>
+
+<div class="wrap">
+
+<div class="card">
+<div id="status" class="status">Connecting...</div>
+<div id="message" class="note">Market data loading...</div>
+</div>
+
+<div class="info">
+<div class="box">
+<div class="label">Minimum Price</div>
+<div class="value">₹100+</div>
+</div>
+
+<div class="box">
+<div class="label">Timeframe</div>
+<div class="value">1 Minute</div>
+</div>
+
+<div class="box">
+<div class="label">Comparison</div>
+<div class="value">Previous 5-Min Avg</div>
+</div>
+
+<div class="box">
+<div class="label">Sorting</div>
+<div class="value">Highest Spike First</div>
+</div>
+</div>
+
+<div class="card">
+<div class="controls">
+
+<label>
+Multiplier
+<select id="mult">
+<option value="2">2×</option>
+<option value="3" selected>3×</option>
+<option value="5">5×</option>
+<option value="10">10×</option>
+</select>
+</label>
+
+<label>
+Rows
+<select id="rows">
+<option value="10">10</option>
+<option value="20">20</option>
+<option value="30" selected>30</option>
+<option value="50">50</option>
+</select>
+</label>
+
+<button onclick="loadData()">🔄 Refresh</button>
+
+</div>
+</div>
+
+<div class="card">
+<div class="tablebox">
+
+<table>
+<thead>
+<tr>
+<th>Rank</th>
+<th>Symbol</th>
+<th>Price</th>
+<th>1-Min Volume</th>
+<th>5-Min Avg</th>
+<th>Spike</th>
+<th>Time</th>
+</tr>
+</thead>
+
+<tbody id="results">
+<tr>
+<td colspan="7" style="text-align:center">
+Waiting for live data...
+</td>
+</tr>
+</tbody>
+
+</table>
+</div>
+</div>
 
-from datetime import datetime, timezone, timedelta
+<div class="card note">
+<b>Scanner Logic:</b><br>
+• केवल NSE Equity शेयर<br>
+• केवल ₹100 या उससे ऊपर के शेयर<br>
+• Current 1-minute volume को पिछले 5 completed 1-minute candles के average से compare किया जाता है<br>
+• सबसे बड़ा volume spike पहले दिखाया जाता है<br>
+• Scanner केवल market-data analysis करता है। कोई order अपने-आप नहीं लगाता।
+</div>
 
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse
+</div>
 
+<script>
 
-logging.basicConfig(level=logging.INFO)
+async function loadData(){
 
+const rows=document.getElementById("rows").value;
+const mult=document.getElementById("mult").value;
 
-# ============================================================
-# CONFIGURATION
-# ============================================================
+const status=document.getElementById("status");
+const message=document.getElementById("message");
+const body=document.getElementById("results");
 
-TOKEN = os.getenv("UPSTOX_ACCESS_TOKEN", "").strip()
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
+status.textContent="⏳ Scanning...";
+status.className="status warn";
 
-BASE = "https://api.upstox.com"
-INSTR_URL = "https://assets.upstox.com/market-quote/instruments/exchange/complete.json.gz"
+try{
 
-IST = timezone(timedelta(hours=5, minutes=30))
+const url="/api/scan?rows="+rows+"&mult="+mult;
 
-s = requests.Session()
+const response=await fetch(url);
 
-app = FastAPI()
+if(!response.ok){
+throw new Error("HTTP "+response.status);
+}
 
-instruments = []
-loaded = 0
+const data=await response.json();
 
+if(data.connected===false){
+throw new Error(data.detail || "Scanner not connected");
+}
 
-# ============================================================
-# HEADERS
-# ============================================================
+status.textContent="🟢 Scanner Connected";
+status.className="status live";
 
-def upstox_headers():
-    return {
-        "Accept": "application/json",
-        "Authorization": f"Bearer {TOKEN}",
-    }
+message.textContent=
+"Scanned: "+(data.scanned || 0)+
+" | Updated: "+(data.updated_at || "--");
 
+const list=data.results || [];
 
-# ============================================================
-# LOAD NSE EQUITY INSTRUMENTS
-# ============================================================
+if(list.length===0){
 
-def load():
-    global instruments, loaded
+body.innerHTML=
+'<tr><td colspan="7" style="text-align:center">No matching stocks found</td></tr>';
 
-    if instruments and time.time() - loaded < 3600:
-        return
+return;
+}
 
-    if not TOKEN:
-        raise HTTPException(
-            status_code=500,
-            detail="UPSTOX_ACCESS_TOKEN is not configured"
-        )
+body.innerHTML="";
 
-    r = s.get(INSTR_URL, timeout=30)
-    r.raise_for_status()
+list.forEach((x,i)=>{
 
-    raw = r.content
+const tr=document.createElement("tr");
 
-    try:
-        if raw[:2] == b"\x1f\x8b":
-            raw = gzip.decompress(raw)
+const symbol=x.symbol || "--";
+const price=Number(x.price || 0).toFixed(2);
+const volume=Number(x.volume || 0).toLocaleString();
+const avg=Number(x.avg5 || 0).toFixed(1);
+const spike=Number(x.multiplier || 0).toFixed(2);
+const time=x.time || "--";
 
-        data = json.loads(raw.decode("utf-8"))
+tr.innerHTML=
+"<td>"+(i+1)+"</td>"+
+"<td><b>"+symbol+"</b></td>"+
+"<td>₹"+price+"</td>"+
+"<td>"+volume+"</td>"+
+"<td>"+avg+"</td>"+
+"<td class='spike'>"+spike+"×</td>"+
+"<td>"+time+"</td>";
 
-    except Exception as e:
-        logging.exception("Instrument file error")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Instrument file error: {e}"
-        )
+body.appendChild(tr);
 
-    instruments = [
-        x for x in data
-        if x.get("segment") == "NSE_EQ"
-        and x.get("instrument_type") == "EQ"
-        and x.get("security_type") == "NORMAL"
-        and x.get("instrument_key")
-    ]
+});
 
-    loaded = time.time()
+}catch(error){
 
-    logging.info(
-        "Loaded %s NSE EQ instruments",
-        len(instruments)
-    )
+status.textContent="🔴 Scanner Error";
+status.className="status";
 
+message.textContent=error.message;
 
-# ============================================================
-# CHUNK HELPER
-# ============================================================
+body.innerHTML=
+'<tr><td colspan="7" style="text-align:center">Unable to load scanner data</td></tr>';
 
-def chunks(items, size):
-    for i in range(0, len(items), size):
-        yield items[i:i + size]
+}
 
+}
 
-# ============================================================
-# GET LIVE 1-MINUTE OHLC
-# ============================================================
+loadData();
 
-def quotes():
-    out = []
+setInterval(loadData,10000);
 
-    for batch in chunks(instruments, 500):
+</script>
 
-        keys = ",".join(
-            x["instrument_key"]
-            for x in batch
-        )
-
-        try:
-
-            r = s.get(
-                BASE + "/v3/market-quote/ohlc",
-                headers=upstox_headers(),
-                params={
-                    "instrument_key": keys,
-                    "interval": "I1"
-                },
-                timeout=30
-            )
-
-            r.raise_for_status()
-
-            payload = r.json()
-
-            data = payload.get("data", {})
-
-            if isinstance(data, dict):
-                out.extend(data.values())
-
-        except Exception as e:
-
-            logging.warning(
-                "Quote batch error: %s",
-                e
-            )
-
-    return out
-
-
-# ============================================================
-# CANDLE TIME
-# ============================================================
-
-def candle_time(ts):
-
-    try:
-
-        if not ts:
-            return ""
-
-        return datetime.fromtimestamp(
-            int(ts) / 1000,
-            tz=timezone.utc
-        ).astimezone(IST).strftime("%H:%M:%S")
-
-    except Exception:
-
-        return ""
-
-
-# ============================================================
-# SYMBOL MAP
-# ============================================================
-
-def make_symbol_map():
-
-    result = {}
-
-    for x in instruments:
-
-        key = x.get("instrument_key")
-
-        if key:
-            result[key] = x
-
-        trading_symbol = x.get("trading_symbol")
-
-        if trading_symbol:
-            result[trading_symbol] = x
-
-    return result
-
-
-# ============================================================
-# SCANNER
-# ============================================================
-
-def run_scan(rows=10, mult=3):
-
-    if not TOKEN:
-        raise HTTPException(
-            status_code=500,
-            detail="UPSTOX_ACCESS_TOKEN is not configured"
-        )
-
-    rows = max(1, min(100, int(rows)))
-    mult = max(0.1, min(1000, float(mult)))
-
-    load()
-
-    qs = quotes()
-
-    by_key = make_symbol_map()
-
-    results = []
-
-    for q in qs:
-
-        try:
-
-            price = float(
-                q.get("last_price") or 0
-            )
-
-            # Only shares priced at ₹100 or above
-            if price < 100:
-                continue
-
-            live = q.get("live_ohlc") or {}
-            prev = q.get("prev_ohlc") or {}
-
-            current_volume = float(
-                live.get("volume") or 0
-            )
-
-            previous_volume = float(
-                prev.get("volume") or 0
-            )
-
-            if current_volume <= 0:
-                continue
-
-            if previous_volume <= 0:
-                continue
-
-            volume_multiplier = (
-                current_volume / previous_volume
-            )
-
-            if volume_multiplier < mult:
-                continue
-
-            key = q.get("instrument_token")
-
-            info = by_key.get(key, {})
-
-            symbol = (
-                info.get("trading_symbol")
-                or q.get("symbol")
-                or str(key or "")
-            )
-
-            ts = (
-                live.get("ts")
-                or prev.get("ts")
-            )
-
-            results.append({
-                "symbol": symbol,
-                "price": price,
-
-                "volume": current_volume,
-                "avg5": previous_volume,
-
-                "multiplier": round(
-                    volume_multiplier,
-                    2
-                ),
-
-                "time": candle_time(ts),
-
-                "current_1min_volume":
-                    current_volume,
-
-                "previous_1min_volume":
-                    previous_volume,
-
-                "volume_jump":
-                    round(volume_multiplier, 2)
-            })
-
-        except Exception as e:
-
-            logging.warning(
-                "Scan item error: %s",
-                e
-            )
-
-    results.sort(
-        key=lambda x: x["multiplier"],
-        reverse=True
-    )
-
-    return {
-        "connected": True,
-
-        "mode":
-            "Live 1-minute vs previous 1-minute volume",
-
-        "scanned":
-            len(instruments),
-
-        "updated_at":
-            datetime.now(IST).strftime(
-                "%Y-%m-%d %H:%M:%S"
-            ),
-
-        "results":
-            results[:rows]
-    }
-
-
-# ============================================================
-# TELEGRAM SEND MESSAGE
-# ============================================================
-
-def telegram_send(chat_id, text):
-
-    if not TELEGRAM_TOKEN:
-        logging.warning(
-            "TELEGRAM_BOT_TOKEN is not configured"
-        )
-        return False
-
-    try:
-
-        r = s.post(
-            f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
-            json={
-                "chat_id": chat_id,
-                "text": text
-            },
-            timeout=15
-        )
-
-        r.raise_for_status()
-
-        return True
-
-    except Exception as e:
-
-        logging.warning(
-            "Telegram send error: %s",
-            e
-        )
-
-        return False
-
-
-# ============================================================
-# TELEGRAM FORMAT
-# ============================================================
-
-def format_scan_message(data):
-
-    results = data.get("results", [])
-
-    if not results:
-
-        return (
-            "ParulScanner Bot\n\n"
-            "Abhi koi share nahi mila.\n"
-            "Volume condition ko satisfy karne wala "
-            "share nahi hai."
-        )
-
-    lines = [
-        "🚀 ParulScanner",
-        "",
-        "Live 1-minute Volume Jump",
-        "Price: ₹100+",
-        ""
-    ]
-
-    for i, x in enumerate(results, 1):
-
-        lines.append(
-            f"{i}. {x['symbol']}\n"
-            f"Price: ₹{x['price']:.2f}\n"
-            f"Current Vol: {x['current_1min_volume']:.0f}\n"
-            f"Previous Vol: {x['previous_1min_volume']:.0f}\n"
-            f"Jump: {x['volume_jump']:.2f}x\n"
-            f"Time: {x['time']}"
-        )
-
-        lines.append("")
-
-    return "\n".join(lines)
-
-
-# ============================================================
-# TELEGRAM /start AND /scan POLLING
-# ============================================================
-
-telegram_running = False
-
-
-def telegram_polling():
-
-    global telegram_running
-
-    if not TELEGRAM_TOKEN:
-        logging.warning(
-            "Telegram polling disabled: token missing"
-        )
-        return
-
-    telegram_running = True
-
-    offset = 0
-
-    # Remove any old webhook so polling can work.
-    try:
-
-        s.post(
-            f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/deleteWebhook",
-            timeout=15
-        )
-
-    except Exception as e:
-
-        logging.warning(
-            "Telegram webhook cleanup error: %s",
-            e
-        )
-
-    logging.info("Telegram polling started")
-
-    while True:
-
-        try:
-
-            r = s.get(
-                f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/getUpdates",
-                params={
-                    "timeout": 25,
-                    "offset": offset
-                },
-                timeout=35
-            )
-
-            r.raise_for_status()
-
-            payload = r.json()
-
-            updates = payload.get(
-                "result",
-                []
-            )
-
-            for update in updates:
-
-                offset = update["update_id"] + 1
-
-                message = update.get(
-                    "message"
-                )
-
-                if not message:
-                    continue
-
-                chat = message.get(
-                    "chat",
-                    {}
-                )
-
-                chat_id = chat.get(
-                    "id"
-                )
-
-                text = (
-                    message.get("text")
-                    or ""
-                ).strip()
-
-                if not chat_id:
-                    continue
-
-                if text.startswith("/start"):
-
-                    telegram_send(
-                        chat_id,
-                        "✅ ParulScanner Bot Active\n\n"
-                        "Commands:\n"
-                        "/scan - Live volume scanner\n"
-                        "/start - Bot status\n\n"
-                        "Scanner NSE equity shares ko "
-                        "check karta hai aur ₹100+ price "
-                        "wale shares mein live 1-minute "
-                        "volume jump dikhata hai."
-                    )
-
-                elif text.startswith("/scan"):
-
-                    try:
-
-                        data = run_scan(
-                            rows=10,
-                            mult=3
-                        )
-
-                        telegram_send(
-                            chat_id,
-                            format_scan_message(data)
-                        )
-
-                    except Exception as e:
-
-                        telegram_send(
-                            chat_id,
-                            "❌ Scanner error:\n"
-                            + str(e)
-                        )
-
-                else:
-
-                    telegram_send(
-                        chat_id,
-                        "Command samajh nahi aaya.\n\n"
-                        "/scan bhejiye scanner chalane ke liye."
-                    )
-
-        except Exception as e:
-
-            logging.warning(
-                "Telegram polling error: %s",
-                e
-            )
-
-            time.sleep(5)
-
-
-# ============================================================
-# START TELEGRAM THREAD
-# ============================================================
-
-@app.on_event("startup")
-def startup_event():
-
-    if TELEGRAM_TOKEN:
-
-        thread = threading.Thread(
-            target=telegram_polling,
-            daemon=True
-        )
-
-        thread.start()
-
-    else:
-
-        logging.warning(
-            "TELEGRAM_BOT_TOKEN missing"
-        )
-
-
-# ============================================================
-# HOME PAGE
-# ============================================================
-
-@app.get("/")
-def root():
-
-    return FileResponse(
-        "index.html"
-    )
-
-
-# ============================================================
-# SCANNER API
-# ============================================================
-
-@app.get("/api/scan")
-def scan(
-    rows: int = 10,
-    mult: float = 3
-):
-
-    return run_scan(
-        rows=rows,
-        mult=mult
-    )
-
-
-# ============================================================
-# HEALTH CHECK
-# ============================================================
-
-@app.get("/health")
-def health():
-
-    return {
-        "status": "ok",
-        "upstox": bool(TOKEN),
-        "telegram": bool(TELEGRAM_TOKEN)
-    }
+</body>
+</html>
