@@ -6,22 +6,41 @@
 <title>ParulScanner</title>
 
 <style>
-*{box-sizing:border-box}
+
+*{
+box-sizing:border-box
+}
+
 body{
 margin:0;
 background:#0b0f14;
 color:#fff;
 font-family:Arial,sans-serif
 }
+
 header{
 background:#171c24;
 padding:20px;
 text-align:center;
 border-bottom:1px solid #303744
 }
-h1{margin:0;font-size:30px}
-.sub{color:#aeb6c3;margin-top:7px}
-.wrap{max-width:1100px;margin:auto;padding:12px}
+
+h1{
+margin:0;
+font-size:30px
+}
+
+.sub{
+color:#aeb6c3;
+margin-top:7px
+}
+
+.wrap{
+max-width:1100px;
+margin:auto;
+padding:12px
+}
+
 .card{
 background:#171c24;
 border:1px solid #303744;
@@ -29,15 +48,26 @@ border-radius:14px;
 padding:15px;
 margin-bottom:12px
 }
-.status{font-weight:bold}
-.live{color:#38d996}
-.warn{color:#ffbd4a}
+
+.status{
+font-weight:bold
+}
+
+.live{
+color:#38d996
+}
+
+.warn{
+color:#ffbd4a
+}
+
 .controls{
 display:flex;
 gap:10px;
 flex-wrap:wrap;
 align-items:center
 }
+
 select,button{
 background:#0e131a;
 color:white;
@@ -46,260 +76,650 @@ border-radius:9px;
 padding:11px;
 font-size:15px
 }
+
 button{
 cursor:pointer;
 font-weight:bold
 }
+
 .info{
 display:grid;
 grid-template-columns:repeat(2,1fr);
 gap:10px;
 margin-bottom:12px
 }
+
 .box{
 background:#11161d;
 border:1px solid #303744;
 border-radius:12px;
 padding:13px
 }
-.label{color:#9ca6b5;font-size:13px}
-.value{font-size:18px;font-weight:bold;margin-top:5px}
+
+.label{
+color:#9ca6b5;
+font-size:13px
+}
+
+.value{
+font-size:18px;
+font-weight:bold;
+margin-top:5px
+}
+
 .tablebox{
 overflow-x:auto;
 background:#11161d;
 border-radius:12px;
 border:1px solid #303744
 }
+
 table{
 width:100%;
 border-collapse:collapse;
 font-size:13px;
 min-width:750px
 }
+
 th,td{
 padding:11px 8px;
 border-bottom:1px solid #303744;
 text-align:right;
 white-space:nowrap
 }
-th:first-child,td:first-child,
-th:nth-child(2),td:nth-child(2){
+
+th:first-child,
+td:first-child,
+th:nth-child(2),
+td:nth-child(2){
 text-align:left
 }
-th{color:#9ca6b5}
-.spike{
+
+th{
+color:#9ca6b5
+}
+
+
+/* ============================================================
+   SPIKE COLORS
+   ============================================================ */
+
+.spike-green{
 color:#43e0a0;
 font-weight:bold
 }
+
+.spike-red{
+color:#ff4d5d;
+font-weight:bold
+}
+
+.spike-neutral{
+color:#aeb6c3;
+font-weight:bold
+}
+
+
+/* ============================================================
+   NOTE
+   ============================================================ */
+
 .note{
 color:#9ca6b5;
 font-size:12px;
 line-height:1.5;
 margin-top:12px
 }
+
+
 @media(max-width:600px){
-h1{font-size:26px}
-.info{grid-template-columns:1fr 1fr}
-.wrap{padding:8px}
+
+h1{
+font-size:26px
 }
+
+.info{
+grid-template-columns:1fr 1fr
+}
+
+.wrap{
+padding:8px
+}
+
+}
+
 </style>
 </head>
+
 
 <body>
 
 <header>
+
 <h1>ParulScanner</h1>
-<div class="sub">1-Minute Volume Explosion Scanner</div>
+
+<div class="sub">
+1-Minute Volume Explosion Scanner
+</div>
+
 </header>
+
 
 <div class="wrap">
 
+
+<!-- STATUS -->
+
 <div class="card">
-<div id="status" class="status">Connecting...</div>
-<div id="message" class="note">Market data loading...</div>
+
+<div id="status" class="status">
+Connecting...
 </div>
+
+<div id="message" class="note">
+Market data loading...
+</div>
+
+</div>
+
+
+<!-- INFO -->
 
 <div class="info">
-<div class="box">
-<div class="label">Minimum Price</div>
-<div class="value">₹100+</div>
-</div>
 
 <div class="box">
-<div class="label">Timeframe</div>
-<div class="value">1 Minute</div>
+
+<div class="label">
+Minimum Price
 </div>
 
-<div class="box">
-<div class="label">Comparison</div>
-<div class="value">Previous 5-Min Avg</div>
+<div class="value">
+₹100+
 </div>
 
+</div>
+
+
 <div class="box">
-<div class="label">Sorting</div>
-<div class="value">Highest Spike First</div>
+
+<div class="label">
+Timeframe
 </div>
+
+<div class="value">
+1 Minute
 </div>
+
+</div>
+
+
+<div class="box">
+
+<div class="label">
+Comparison
+</div>
+
+<div class="value">
+Previous 5-Min Avg
+</div>
+
+</div>
+
+
+<div class="box">
+
+<div class="label">
+Sorting
+</div>
+
+<div class="value">
+Highest Spike First
+</div>
+
+</div>
+
+</div>
+
+
+<!-- CONTROLS -->
 
 <div class="card">
+
 <div class="controls">
 
 <label>
+
 Multiplier
+
 <select id="mult">
-<option value="2">2×</option>
-<option value="3" selected>3×</option>
-<option value="5">5×</option>
-<option value="10">10×</option>
+
+<option value="2">
+2×
+</option>
+
+<option value="3" selected>
+3×
+</option>
+
+<option value="5">
+5×
+</option>
+
+<option value="10">
+10×
+</option>
+
 </select>
+
 </label>
+
 
 <label>
+
 Rows
+
 <select id="rows">
-<option value="10">10</option>
-<option value="20">20</option>
-<option value="30" selected>30</option>
-<option value="50">50</option>
+
+<option value="10">
+10
+</option>
+
+<option value="20">
+20
+</option>
+
+<option value="30" selected>
+30
+</option>
+
+<option value="50">
+50
+</option>
+
 </select>
+
 </label>
 
-<button onclick="loadData()">🔄 Refresh</button>
+
+<button onclick="loadData()">
+🔄 Refresh
+</button>
 
 </div>
+
 </div>
+
+
+<!-- RESULTS -->
 
 <div class="card">
+
 <div class="tablebox">
 
 <table>
+
 <thead>
+
 <tr>
-<th>Rank</th>
-<th>Symbol</th>
-<th>Price</th>
-<th>1-Min Volume</th>
-<th>5-Min Avg</th>
-<th>Spike</th>
-<th>Time</th>
+
+<th>
+Rank
+</th>
+
+<th>
+Symbol
+</th>
+
+<th>
+Price
+</th>
+
+<th>
+1-Min Volume
+</th>
+
+<th>
+5-Min Avg
+</th>
+
+<th>
+Spike
+</th>
+
+<th>
+Time
+</th>
+
 </tr>
+
 </thead>
 
+
 <tbody id="results">
+
 <tr>
+
 <td colspan="7" style="text-align:center">
+
 Waiting for live data...
+
 </td>
+
 </tr>
+
 </tbody>
 
 </table>
+
 </div>
+
 </div>
+
+
+<!-- LOGIC -->
 
 <div class="card note">
-<b>Scanner Logic:</b><br>
-• केवल NSE Equity शेयर<br>
-• केवल ₹100 या उससे ऊपर के शेयर<br>
-• Current 1-minute volume को पिछले 5 completed 1-minute candles के average से compare किया जाता है<br>
-• सबसे बड़ा volume spike पहले दिखाया जाता है<br>
+
+<b>
+Scanner Logic:
+</b>
+
+<br>
+
+• केवल NSE Equity शेयर
+
+<br>
+
+• केवल ₹100 या उससे ऊपर के शेयर
+
+<br>
+
+• Current 1-minute volume को पिछले 5 completed 1-minute candles के average से compare किया जाता है
+
+<br>
+
+• सबसे बड़ा volume spike पहले दिखाया जाता है
+
+<br>
+
+• <b>Green candle का Spike Green</b> और <b>Red candle का Spike Red</b> दिखाया जाता है
+
+<br>
+
 • Scanner केवल market-data analysis करता है। कोई order अपने-आप नहीं लगाता।
-</div>
 
 </div>
+
+
+</div>
+
 
 <script>
 
+
 async function loadData(){
 
-const rows=document.getElementById("rows").value;
-const mult=document.getElementById("mult").value;
 
-const status=document.getElementById("status");
-const message=document.getElementById("message");
-const body=document.getElementById("results");
+const rows =
+document.getElementById("rows").value;
 
-status.textContent="⏳ Scanning...";
-status.className="status warn";
+const mult =
+document.getElementById("mult").value;
+
+
+const status =
+document.getElementById("status");
+
+const message =
+document.getElementById("message");
+
+const body =
+document.getElementById("results");
+
+
+status.textContent =
+"⏳ Scanning...";
+
+status.className =
+"status warn";
+
 
 try{
 
-const url="/api/scan?rows="+rows+"&mult="+mult;
 
-const response=await fetch(url);
+const url =
+"/api/scan?rows="
++ rows
++ "&mult="
++ mult;
+
+
+const response =
+await fetch(url);
+
 
 if(!response.ok){
-throw new Error("HTTP "+response.status);
+
+throw new Error(
+"HTTP " + response.status
+);
+
 }
 
-const data=await response.json();
 
-if(data.connected===false){
-throw new Error(data.detail || "Scanner not connected");
+const data =
+await response.json();
+
+
+if(data.connected === false){
+
+throw new Error(
+data.detail ||
+"Scanner not connected"
+);
+
 }
 
-status.textContent="🟢 Scanner Connected";
-status.className="status live";
 
-message.textContent=
-"Scanned: "+(data.scanned || 0)+
-" | Updated: "+(data.updated_at || "--");
+status.textContent =
+"🟢 Scanner Connected";
 
-const list=data.results || [];
+status.className =
+"status live";
 
-if(list.length===0){
 
-body.innerHTML=
+message.textContent =
+"Scanned: "
++ (data.scanned || 0)
++ " | Updated: "
++ (data.updated_at || "--");
+
+
+const list =
+data.results || [];
+
+
+if(list.length === 0){
+
+body.innerHTML =
 '<tr><td colspan="7" style="text-align:center">No matching stocks found</td></tr>';
 
 return;
+
 }
 
-body.innerHTML="";
+
+body.innerHTML = "";
+
 
 list.forEach((x,i)=>{
 
-const tr=document.createElement("tr");
 
-const symbol=x.symbol || "--";
-const price=Number(x.price || 0).toFixed(2);
-const volume=Number(x.volume || 0).toLocaleString();
-const avg=Number(x.avg5 || 0).toFixed(1);
-const spike=Number(x.multiplier || 0).toFixed(2);
-const time=x.time || "--";
+const tr =
+document.createElement("tr");
 
-tr.innerHTML=
-"<td>"+(i+1)+"</td>"+
-"<td><b>"+symbol+"</b></td>"+
-"<td>₹"+price+"</td>"+
-"<td>"+volume+"</td>"+
-"<td>"+avg+"</td>"+
-"<td class='spike'>"+spike+"×</td>"+
-"<td>"+time+"</td>";
+
+const symbol =
+x.symbol || "--";
+
+
+const price =
+Number(x.price || 0)
+.toFixed(2);
+
+
+const volume =
+Number(x.volume || 0)
+.toLocaleString();
+
+
+const avg =
+Number(x.avg5 || 0)
+.toFixed(1);
+
+
+const spike =
+Number(x.multiplier || 0)
+.toFixed(2);
+
+
+const time =
+x.time || "--";
+
+
+/* ============================================================
+   DETERMINE CANDLE DIRECTION
+   ============================================================ */
+
+const open =
+Number(x.open || 0);
+
+const close =
+Number(x.close || 0);
+
+
+let spikeClass =
+"spike-neutral";
+
+
+if(close > open){
+
+spikeClass =
+"spike-green";
+
+}
+
+else if(close < open){
+
+spikeClass =
+"spike-red";
+
+}
+
+
+/* ============================================================
+   BUILD ROW
+   ============================================================ */
+
+tr.innerHTML =
+
+"<td>"
++ (i + 1)
++ "</td>"
+
++
+
+"<td><b>"
++ symbol
++ "</b></td>"
+
++
+
+"<td>₹"
++ price
++ "</td>"
+
++
+
+"<td>"
++ volume
++ "</td>"
+
++
+
+"<td>"
++ avg
++ "</td>"
+
++
+
+"<td class='"
++ spikeClass
++ "'>"
++ spike
++ "×</td>"
+
++
+
+"<td>"
++ time
++ "</td>";
+
 
 body.appendChild(tr);
 
+
 });
 
-}catch(error){
 
-status.textContent="🔴 Scanner Error";
-status.className="status";
+}
 
-message.textContent=error.message;
 
-body.innerHTML=
+catch(error){
+
+
+status.textContent =
+"🔴 Scanner Error";
+
+
+status.className =
+"status";
+
+
+message.textContent =
+error.message;
+
+
+body.innerHTML =
+
 '<tr><td colspan="7" style="text-align:center">Unable to load scanner data</td></tr>';
 
-}
 
 }
+
+
+}
+
+
+/* ============================================================
+   INITIAL LOAD
+   ============================================================ */
 
 loadData();
 
-setInterval(loadData,10000);
+
+/* ============================================================
+   AUTO REFRESH EVERY 10 SECONDS
+   ============================================================ */
+
+setInterval(
+loadData,
+10000
+);
+
 
 </script>
+
 
 </body>
 </html>
