@@ -8,7 +8,7 @@ import requests
 
 from datetime import datetime, timezone, timedelta
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 
 
@@ -23,7 +23,11 @@ TOKEN = os.getenv("UPSTOX_ACCESS_TOKEN", "").strip()
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
 
 BASE = "https://api.upstox.com"
-INSTR_URL = "https://assets.upstox.com/market-quote/instruments/exchange/complete.json.gz"
+
+INSTR_URL = (
+    "https://assets.upstox.com/market-quote/"
+    "instruments/exchange/complete.json.gz"
+)
 
 IST = timezone(timedelta(hours=5, minutes=30))
 
@@ -40,6 +44,7 @@ loaded = 0
 # ============================================================
 
 def upstox_headers():
+
     return {
         "Accept": "application/json",
         "Authorization": f"Bearer {TOKEN}",
@@ -51,41 +56,60 @@ def upstox_headers():
 # ============================================================
 
 def load():
+
     global instruments, loaded
 
     if instruments and time.time() - loaded < 3600:
         return
 
     if not TOKEN:
+
         raise HTTPException(
             status_code=500,
             detail="UPSTOX_ACCESS_TOKEN is not configured"
         )
 
-    r = s.get(INSTR_URL, timeout=30)
+    r = s.get(
+        INSTR_URL,
+        timeout=30
+    )
+
     r.raise_for_status()
 
     raw = r.content
 
     try:
+
         if raw[:2] == b"\x1f\x8b":
             raw = gzip.decompress(raw)
 
-        data = json.loads(raw.decode("utf-8"))
+        data = json.loads(
+            raw.decode("utf-8")
+        )
 
     except Exception as e:
-        logging.exception("Instrument file error")
+
+        logging.exception(
+            "Instrument file error"
+        )
+
         raise HTTPException(
             status_code=500,
             detail=f"Instrument file error: {e}"
         )
 
     instruments = [
+
         x for x in data
+
         if x.get("segment") == "NSE_EQ"
+
         and x.get("instrument_type") == "EQ"
+
         and x.get("security_type") == "NORMAL"
+
         and x.get("instrument_key")
+
     ]
 
     loaded = time.time()
@@ -101,8 +125,16 @@ def load():
 # ============================================================
 
 def chunks(items, size):
-    for i in range(0, len(items), size):
-        yield items[i:i + size]
+
+    for i in range(
+        0,
+        len(items),
+        size
+    ):
+
+        yield items[
+            i:i + size
+        ]
 
 
 # ============================================================
@@ -110,9 +142,13 @@ def chunks(items, size):
 # ============================================================
 
 def quotes():
+
     out = []
 
-    for batch in chunks(instruments, 500):
+    for batch in chunks(
+        instruments,
+        500
+    ):
 
         keys = ",".join(
             x["instrument_key"]
@@ -122,12 +158,17 @@ def quotes():
         try:
 
             r = s.get(
-                BASE + "/v3/market-quote/ohlc",
+
+                BASE
+                + "/v3/market-quote/ohlc",
+
                 headers=upstox_headers(),
+
                 params={
                     "instrument_key": keys,
                     "interval": "I1"
                 },
+
                 timeout=30
             )
 
@@ -135,10 +176,16 @@ def quotes():
 
             payload = r.json()
 
-            data = payload.get("data", {})
+            data = payload.get(
+                "data",
+                {}
+            )
 
             if isinstance(data, dict):
-                out.extend(data.values())
+
+                out.extend(
+                    data.values()
+                )
 
         except Exception as e:
 
@@ -162,9 +209,16 @@ def candle_time(ts):
             return ""
 
         return datetime.fromtimestamp(
+
             int(ts) / 1000,
+
             tz=timezone.utc
-        ).astimezone(IST).strftime("%H:%M:%S")
+
+        ).astimezone(
+            IST
+        ).strftime(
+            "%H:%M:%S"
+        )
 
     except Exception:
 
@@ -181,14 +235,20 @@ def make_symbol_map():
 
     for x in instruments:
 
-        key = x.get("instrument_key")
+        key = x.get(
+            "instrument_key"
+        )
 
         if key:
+
             result[key] = x
 
-        trading_symbol = x.get("trading_symbol")
+        trading_symbol = x.get(
+            "trading_symbol"
+        )
 
         if trading_symbol:
+
             result[trading_symbol] = x
 
     return result
@@ -198,16 +258,37 @@ def make_symbol_map():
 # SCANNER
 # ============================================================
 
-def run_scan(rows=10, mult=3):
+def run_scan(
+    rows=10,
+    mult=3
+):
 
     if not TOKEN:
+
         raise HTTPException(
+
             status_code=500,
-            detail="UPSTOX_ACCESS_TOKEN is not configured"
+
+            detail=
+            "UPSTOX_ACCESS_TOKEN is not configured"
+
         )
 
-    rows = max(1, min(100, int(rows)))
-    mult = max(0.1, min(1000, float(mult)))
+    rows = max(
+        1,
+        min(
+            100,
+            int(rows)
+        )
+    )
+
+    mult = max(
+        0.1,
+        min(
+            1000,
+            float(mult)
+        )
+    )
 
     load()
 
@@ -229,15 +310,28 @@ def run_scan(rows=10, mult=3):
             if price < 100:
                 continue
 
-            live = q.get("live_ohlc") or {}
-            prev = q.get("prev_ohlc") or {}
+            live = (
+                q.get("live_ohlc")
+                or {}
+            )
+
+            prev = (
+                q.get("prev_ohlc")
+                or {}
+            )
 
             current_volume = float(
-                live.get("volume") or 0
+
+                live.get("volume")
+                or 0
+
             )
 
             previous_volume = float(
-                prev.get("volume") or 0
+
+                prev.get("volume")
+                or 0
+
             )
 
             if current_volume <= 0:
@@ -247,40 +341,121 @@ def run_scan(rows=10, mult=3):
                 continue
 
             volume_multiplier = (
-                current_volume / previous_volume
+
+                current_volume
+                / previous_volume
+
             )
 
             if volume_multiplier < mult:
                 continue
 
-            key = q.get("instrument_token")
+            key = q.get(
+                "instrument_token"
+            )
 
-            info = by_key.get(key, {})
+            info = by_key.get(
+                key,
+                {}
+            )
 
             symbol = (
-                info.get("trading_symbol")
-                or q.get("symbol")
-                or str(key or "")
+
+                info.get(
+                    "trading_symbol"
+                )
+
+                or q.get(
+                    "symbol"
+                )
+
+                or str(
+                    key or ""
+                )
+
             )
 
             ts = (
+
                 live.get("ts")
+
                 or prev.get("ts")
+
             )
 
+
+            # ====================================================
+            # CURRENT 1-MINUTE CANDLE OPEN / HIGH / LOW / CLOSE
+            # ====================================================
+
+            candle_open = float(
+
+                live.get("open")
+                or 0
+
+            )
+
+            candle_high = float(
+
+                live.get("high")
+                or 0
+
+            )
+
+            candle_low = float(
+
+                live.get("low")
+                or 0
+
+            )
+
+            candle_close = float(
+
+                live.get("close")
+                or 0
+
+            )
+
+
+            # ====================================================
+            # RESULT
+            # ====================================================
+
             results.append({
-                "symbol": symbol,
-                "price": price,
 
-                "volume": current_volume,
-                "avg5": previous_volume,
+                "symbol":
+                    symbol,
 
-                "multiplier": round(
-                    volume_multiplier,
-                    2
-                ),
+                "price":
+                    price,
 
-                "time": candle_time(ts),
+                "volume":
+                    current_volume,
+
+                "avg5":
+                    previous_volume,
+
+                "multiplier":
+                    round(
+                        volume_multiplier,
+                        2
+                    ),
+
+                "time":
+                    candle_time(ts),
+
+                # Current candle OHLC
+                "open":
+                    candle_open,
+
+                "high":
+                    candle_high,
+
+                "low":
+                    candle_low,
+
+                "close":
+                    candle_close,
 
                 "current_1min_volume":
                     current_volume,
@@ -289,7 +464,11 @@ def run_scan(rows=10, mult=3):
                     previous_volume,
 
                 "volume_jump":
-                    round(volume_multiplier, 2)
+                    round(
+                        volume_multiplier,
+                        2
+                    )
+
             })
 
         except Exception as e:
@@ -300,12 +479,18 @@ def run_scan(rows=10, mult=3):
             )
 
     results.sort(
-        key=lambda x: x["multiplier"],
+
+        key=lambda x:
+        x["multiplier"],
+
         reverse=True
+
     )
 
     return {
-        "connected": True,
+
+        "connected":
+            True,
 
         "mode":
             "Live 1-minute vs previous 1-minute volume",
@@ -314,12 +499,15 @@ def run_scan(rows=10, mult=3):
             len(instruments),
 
         "updated_at":
-            datetime.now(IST).strftime(
+            datetime.now(
+                IST
+            ).strftime(
                 "%Y-%m-%d %H:%M:%S"
             ),
 
         "results":
             results[:rows]
+
     }
 
 
@@ -327,23 +515,36 @@ def run_scan(rows=10, mult=3):
 # TELEGRAM SEND MESSAGE
 # ============================================================
 
-def telegram_send(chat_id, text):
+def telegram_send(
+    chat_id,
+    text
+):
 
     if not TELEGRAM_TOKEN:
+
         logging.warning(
             "TELEGRAM_BOT_TOKEN is not configured"
         )
+
         return False
 
     try:
 
         r = s.post(
-            f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
+
+            f"https://api.telegram.org/"
+            f"bot{TELEGRAM_TOKEN}/sendMessage",
+
             json={
-                "chat_id": chat_id,
-                "text": text
+                "chat_id":
+                    chat_id,
+
+                "text":
+                    text
             },
+
             timeout=15
+
         )
 
         r.raise_for_status()
@@ -366,43 +567,71 @@ def telegram_send(chat_id, text):
 
 def format_scan_message(data):
 
-    results = data.get("results", [])
+    results = data.get(
+        "results",
+        []
+    )
 
     if not results:
 
         return (
+
             "ParulScanner Bot\n\n"
+
             "Abhi koi share nahi mila.\n"
+
             "Volume condition ko satisfy karne wala "
             "share nahi hai."
+
         )
 
     lines = [
+
         "🚀 ParulScanner",
+
         "",
+
         "Live 1-minute Volume Jump",
+
         "Price: ₹100+",
+
         ""
+
     ]
 
-    for i, x in enumerate(results, 1):
+    for i, x in enumerate(
+        results,
+        1
+    ):
 
         lines.append(
+
             f"{i}. {x['symbol']}\n"
+
             f"Price: ₹{x['price']:.2f}\n"
-            f"Current Vol: {x['current_1min_volume']:.0f}\n"
-            f"Previous Vol: {x['previous_1min_volume']:.0f}\n"
-            f"Jump: {x['volume_jump']:.2f}x\n"
+
+            f"Current Vol: "
+            f"{x['current_1min_volume']:.0f}\n"
+
+            f"Previous Vol: "
+            f"{x['previous_1min_volume']:.0f}\n"
+
+            f"Jump: "
+            f"{x['volume_jump']:.2f}x\n"
+
             f"Time: {x['time']}"
+
         )
 
         lines.append("")
 
-    return "\n".join(lines)
+    return "\n".join(
+        lines
+    )
 
 
 # ============================================================
-# TELEGRAM /start AND /scan POLLING
+# TELEGRAM POLLING
 # ============================================================
 
 telegram_running = False
@@ -413,43 +642,64 @@ def telegram_polling():
     global telegram_running
 
     if not TELEGRAM_TOKEN:
+
         logging.warning(
             "Telegram polling disabled: token missing"
         )
+
         return
 
     telegram_running = True
 
     offset = 0
 
-    # Remove any old webhook so polling can work.
+
+    # Remove old webhook
     try:
 
         s.post(
-            f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/deleteWebhook",
+
+            f"https://api.telegram.org/"
+            f"bot{TELEGRAM_TOKEN}/deleteWebhook",
+
             timeout=15
+
         )
 
     except Exception as e:
 
         logging.warning(
+
             "Telegram webhook cleanup error: %s",
             e
+
         )
 
-    logging.info("Telegram polling started")
+
+    logging.info(
+        "Telegram polling started"
+    )
+
 
     while True:
 
         try:
 
             r = s.get(
-                f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/getUpdates",
+
+                f"https://api.telegram.org/"
+                f"bot{TELEGRAM_TOKEN}/getUpdates",
+
                 params={
+
                     "timeout": 25,
+
                     "offset": offset
+
                 },
+
                 timeout=35
+
             )
 
             r.raise_for_status()
@@ -461,9 +711,13 @@ def telegram_polling():
                 []
             )
 
+
             for update in updates:
 
-                offset = update["update_id"] + 1
+                offset = (
+                    update["update_id"]
+                    + 1
+                )
 
                 message = update.get(
                     "message"
@@ -482,62 +736,98 @@ def telegram_polling():
                 )
 
                 text = (
-                    message.get("text")
+
+                    message.get(
+                        "text"
+                    )
                     or ""
+
                 ).strip()
+
 
                 if not chat_id:
                     continue
 
-                if text.startswith("/start"):
+
+                if text.startswith(
+                    "/start"
+                ):
 
                     telegram_send(
+
                         chat_id,
+
                         "✅ ParulScanner Bot Active\n\n"
+
                         "Commands:\n"
+
                         "/scan - Live volume scanner\n"
+
                         "/start - Bot status\n\n"
+
                         "Scanner NSE equity shares ko "
                         "check karta hai aur ₹100+ price "
                         "wale shares mein live 1-minute "
                         "volume jump dikhata hai."
+
                     )
 
-                elif text.startswith("/scan"):
+
+                elif text.startswith(
+                    "/scan"
+                ):
 
                     try:
 
                         data = run_scan(
+
                             rows=10,
+
                             mult=3
+
                         )
 
                         telegram_send(
+
                             chat_id,
-                            format_scan_message(data)
+
+                            format_scan_message(
+                                data
+                            )
+
                         )
 
                     except Exception as e:
 
                         telegram_send(
+
                             chat_id,
+
                             "❌ Scanner error:\n"
                             + str(e)
+
                         )
+
 
                 else:
 
                     telegram_send(
+
                         chat_id,
+
                         "Command samajh nahi aaya.\n\n"
                         "/scan bhejiye scanner chalane ke liye."
+
                     )
+
 
         except Exception as e:
 
             logging.warning(
+
                 "Telegram polling error: %s",
                 e
+
             )
 
             time.sleep(5)
@@ -553,8 +843,11 @@ def startup_event():
     if TELEGRAM_TOKEN:
 
         thread = threading.Thread(
+
             target=telegram_polling,
+
             daemon=True
+
         )
 
         thread.start()
@@ -584,13 +877,19 @@ def root():
 
 @app.get("/api/scan")
 def scan(
+
     rows: int = 10,
+
     mult: float = 3
+
 ):
 
     return run_scan(
+
         rows=rows,
+
         mult=mult
+
     )
 
 
@@ -602,7 +901,14 @@ def scan(
 def health():
 
     return {
-        "status": "ok",
-        "upstox": bool(TOKEN),
-        "telegram": bool(TELEGRAM_TOKEN)
+
+        "status":
+            "ok",
+
+        "upstox":
+            bool(TOKEN),
+
+        "telegram":
+            bool(TELEGRAM_TOKEN)
+
     }
